@@ -361,3 +361,14 @@ Object.assign(SRC,{
     if(e.g==="邪神の宮殿"&&/鎧鬼/.test(e.bosses||"")){ e.parties=(e.parties||[]).concat([P(["竜術士","レンジャー","隠者","僧侶"],"五属性の災禍（一獄）の★職から組んだ例。呪闇から倒す")]); e.src=[...new Set([...(e.src||[]),"ike_jashin"])]; }
   });
 })();
+// 輝晶獣の編成・まもの博士とゼルメアの弱点（2026-10-24 追加）
+Object.assign(SRC,{ranbu_zol:{t:"ゲーム乱舞 輝晶獣ゾルゾムの攻略まとめ",u:"https://gameranbu.jp/dq10/e8f5ab67492a97cb48ab"},ike_bir:{t:"いけ攻略 閃輝晶獣ビルビギス",u:"https://dq10.i-k-e.net/kisyou/bir"},ike_zau:{t:"いけ攻略 閃輝晶獣ザウザリィ",u:"https://dq10.i-k-e.net/kisyou/zau"},quucha_bir:{t:"くうちゃ冒険譚 閃輝晶獣ビルビギス",u:"https://quucha.com/battle-birubigisu/"}});
+(()=>{ const K="攻略サイトの構成例";
+  const F={"輝晶獣ゾルゾム":{parties:[{jobs:["武闘家","どうぐ使い","レンジャー","僧侶"],note:"ゲーム乱舞のおすすめ構成",era:K}],src:["ranbu_zol"]},
+   "閃輝晶獣ビルビギス":{parties:[{jobs:["戦士","武闘家","賢者","僧侶"],note:"安全構成。僧侶は痛恨・感電対策で必須",era:K},{jobs:["戦士","海賊","賢者","僧侶"],note:"ブログでの討伐例",era:K}],src:["ike_bir","quucha_bir"]},
+   "閃輝晶獣ザウザリィ":{parties:[{jobs:["戦士","武闘家","賢者","僧侶"],note:"戦士が壁と真やいば、武闘家が一喝、賢者は多段対策（どうぐ使いでも可）",era:K}],src:["ike_zau"]},
+   "ダークアドミラル（週課ソロ）":{weak:"攻略ページに記載なし（いたずらもぐらの氷結らんげきで氷耐性を下げる戦法が定番）"},
+   "激昂の魔人（月課・同盟）":{weak:"攻略ページに記載なし"},
+   "いにしえのゼルメア（地下20〜24階）":{weak:"フロアやボスごとに違う（「ゼルメア」タブも参照）"}};
+  EV.forEach(e=>{ const f=F[e.name]; if(!f) return; if(f.parties) e.parties=(e.parties||[]).concat(f.parties); if(f.weak) e.weak=f.weak; if(f.src) e.src=[...new Set([...(e.src||[]),...f.src])]; });
+})();
