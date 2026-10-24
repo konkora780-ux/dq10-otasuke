@@ -90,15 +90,33 @@ function cardActions(kind, o){ const id=o.id; return `<div class="actions">
   ${kind!=="lv"?`<button class="btn" data-act="recruit" data-id="${kind}:${esc(id)}">募集文</button>`:""}
   <button class="btn" data-act="share" data-id="${kind}:${esc(id)}">共有リンク</button>
   <button class="btn" data-act="report" data-id="${esc(o.name)}">誤りを報告</button></div>`; }
+// 「何を装備すればいいか」をひと目で
+const FORCE={"炎":"ファイアフォース","氷":"アイスフォース","風":"ストームフォース","光":"ライトフォース","闇":"ダークフォース"};
+const ELEM=["炎","氷","風","雷","土","光","闇"];
+function equipBox(o){ if(!o.weak && !o.need && !o.dmg) return "";
+  const w=o.weak||""; const we=ELEM.filter(e=>w.split(/[（(]/)[0].includes(e) && !/^なし/.test(w));
+  const atk = o.weak ? `${esc(w)}${we.length?`<br><span class="hint">→ ${we.map(e=>esc(e)+"属性の武器・呪文"+(FORCE[e]?"／"+FORCE[e]:"")).join("、")}</span>`:(/^なし|等倍/.test(w)?`<br><span class="hint">→ 属性にこだわらず火力重視（無属性でOK）</span>`:"")}` : `<span class="lead">情報なし（要確認）</span>`;
+  const dm=(o.dmg||[]); const arm = dm.length ? dm.map(d=>esc(d)+(ELEM.includes(d)?"属性":"")+"ダメージ減").join("・") : "特になし";
+  const st=(o.need||[]); const acc = st.length ? st.map(x=>esc(x)+(x==="弱体"?"ガード（幻界王の首かざり等）":"ガード")).join("・") : "特になし";
+  return `<div class="equip"><h4>装備の目安</h4><dl class="kv">
+   <dt>武器・攻撃</dt><dd>${atk}</dd>
+   ${o.res?`<dt>効きにくい</dt><dd>${esc(o.res)}</dd>`:""}
+   <dt>防具（体・盾）</dt><dd>${arm}</dd>
+   <dt>頭・足・アクセ</dt><dd>${acc}</dd>
+   ${o.prio?`<dt>耐性の重要度</dt><dd>${esc(o.prio)}<br><span class="hint">◎必須 ○あると楽 △余裕があれば</span></dd>`:""}
+   ${o.gear?`<dt>おすすめ装備</dt><dd>${esc(o.gear)}</dd>`:""}
+  </dl></div>`; }
 function bossCard(kind, o){ const done=S.done[kind+":"+o.id]; const parties=o.parties||[];
   const hits = S.myJob ? parties.filter(p=>partyHas(p,S.myJob)).length : null;
   return `<article class="card ${done?"done":""}" id="c-${esc(o.id)}">
   <div class="card-h"><h3>${esc(o.name)}</h3>${S.fav[kind+":"+o.id]?'<span class="badge warn">☆</span>':""}</div>
   <div class="meta">${o.cat?`<span class="badge">${esc(o.cat)}</span>`:""}${o.g?`<span class="badge">${esc(o.g)}</span>`:""}${o.ver?`<span class="badge ${verNum(o.ver)>=7?"new":""}">実装 Ver.${esc(o.ver)}</span>`:""}${o.bosses?`<span>${esc(o.bosses)}</span>`:""}</div>
-  ${o.reward?`<dl class="kv"><dt>報酬</dt><dd>${esc(o.reward)}</dd>${o.weak?`<dt>弱点</dt><dd>${esc(o.weak)}</dd><dt>効きにくい</dt><dd>${esc(o.res)}</dd>`:""}</dl>`:""}
+  ${o.reward?`<dl class="kv"><dt>報酬</dt><dd>${esc(o.reward)}</dd></dl>`:""}
+  ${equipBox(o)}
   <div><h4>必要な耐性 ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${needChips(o.need,o.dmg)}</div>
   <div><h4>編成パターン（${parties.length}）${hits!=null?` <span class="badge ${hits?"new":"warn"}">${esc(S.myJob)}が入る：${hits}</span>`:""}</h4>
    ${parties.length?parties.map(partyHTML).join(""):`<p class="lead">編成パターンは準備中です（耐性情報のみ）。情報があれば「誤りを報告」から教えてください。</p>`}</div>
+  ${o.acts&&o.acts.length?`<details class="acts"><summary>主な行動と対策（${o.acts.length}）</summary><ul>${o.acts.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></details>`:""}
   ${o.tips?`<div class="tips"><b>注意点</b>　${esc(o.tips)}</div>`:""}
   ${cardActions(kind,o)}
   <details><summary>出典</summary><div class="src">${srcLinks(o.src)}${o.era&&kind==="event"?`<br>${esc(o.era)}`:""}</div></details></article>`; }

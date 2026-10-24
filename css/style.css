@@ -144,3 +144,10 @@ footer p{margin:4px 0}
 .fab{border:2px solid rgba(255,255,255,.7);background:var(--win);color:var(--win-ink);border-radius:999px;min-height:46px;padding:0 16px;font-size:.92rem;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
 .fab:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 main.wrap{padding-bottom:110px}
+.equip{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:8px 10px;background:var(--panel2)}
+.equip h4{margin:0 0 6px}
+.equip .kv{grid-template-columns:7.2em 1fr}
+.hint{color:var(--muted);font-size:.85em}
+details.acts summary{cursor:pointer;font-weight:700}
+details.acts ul{margin:6px 0 0;padding-left:1.2em;font-size:.9rem}
+details.acts li{margin:2px 0}
