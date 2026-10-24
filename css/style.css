@@ -151,3 +151,7 @@ main.wrap{padding-bottom:110px}
 details.acts summary{cursor:pointer;font-weight:700}
 details.acts ul{margin:6px 0 0;padding-left:1.2em;font-size:.9rem}
 details.acts li{margin:2px 0}
+details.guide{border:1px dashed var(--line);border-radius:8px;padding:6px 10px}
+details.guide summary{cursor:pointer;font-weight:700}
+details.guide .chips{margin:6px 0}
+details.guide .kv{grid-template-columns:7.2em 1fr}

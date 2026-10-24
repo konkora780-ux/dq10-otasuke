@@ -106,16 +106,27 @@ function equipBox(o){ if(!o.weak && !o.need && !o.dmg) return "";
    ${o.prio?`<dt>耐性の重要度</dt><dd>${esc(o.prio)}<br><span class="hint">◎必須 ○あると楽 △余裕があれば</span></dd>`:""}
    ${o.gear?`<dt>おすすめ装備</dt><dd>${esc(o.gear)}</dd>`:""}
   </dl></div>`; }
+// 参加ガイドと「この情報で参加できるか」のチェック
+function joinInfo(kind,o){ return kind==="coin"?COIN_INFO:(typeof GINFO!=="undefined"?GINFO[o.g]:null); }
+function readiness(kind,o){ const g=joinInfo(kind,o)||{}; const ok=(t)=>!!t&&!/要確認/.test(t);
+  return [["参加条件・行き方",ok(g.cond)&&ok(g.where)],["弱点",!!o.weak],["耐性",!!((o.need&&o.need.length)||(o.dmg&&o.dmg.length))],["編成",!!(o.parties&&o.parties.length)],["立ち回り",!!((o.acts&&o.acts.length)||o.tips)],["仲間モンスター",ok(g.pet)]]; }
+function guideBox(kind,o){ const g=joinInfo(kind,o); const r=readiness(kind,o); const lack=r.filter(x=>!x[1]).length;
+  const chips=r.map(([t,v])=>`<span class="chip ${v?"ok":"ng"}">${esc(t)}${v?" ✓":" 不足"}</span>`).join("");
+  return `<details class="guide"><summary>参加ガイド <span class="badge ${lack?"warn":"new"}">${lack?"不足 "+lack:"そろっています"}</span></summary>
+  <div class="chips">${chips}</div>
+  ${g?`<dl class="kv"><dt>参加条件</dt><dd>${esc(g.cond||"要確認")}</dd><dt>行き方</dt><dd>${esc(g.where||"要確認")}</dd><dt>人数</dt><dd>${esc(g.size||"要確認")}</dd>${g.reward?`<dt>報酬など</dt><dd>${esc(g.reward)}</dd>`:""}<dt>仲間モンスター</dt><dd>${esc(g.pet||"要確認")}</dd></dl>${g.src&&g.src.length?`<div class="src">出典：${srcLinks(g.src)}</div>`:""}`:`<p class="lead">参加ガイドは準備中です。</p>`}
+  ${lack?`<p class="hint">「不足」の項目は調査中です。知っている情報があれば「誤りを報告」から教えてください。</p>`:""}</details>`; }
 function bossCard(kind, o){ const done=S.done[kind+":"+o.id]; const parties=o.parties||[];
   const hits = S.myJob ? parties.filter(p=>partyHas(p,S.myJob)).length : null;
   return `<article class="card ${done?"done":""}" id="c-${esc(o.id)}">
   <div class="card-h"><h3>${esc(o.name)}</h3>${S.fav[kind+":"+o.id]?'<span class="badge warn">☆</span>':""}</div>
   <div class="meta">${o.cat?`<span class="badge">${esc(o.cat)}</span>`:""}${o.g?`<span class="badge">${esc(o.g)}</span>`:""}${o.ver?`<span class="badge ${verNum(o.ver)>=7?"new":""}">実装 Ver.${esc(o.ver)}</span>`:""}${o.bosses?`<span>${esc(o.bosses)}</span>`:""}</div>
+  ${guideBox(kind,o)}
   ${o.reward?`<dl class="kv"><dt>報酬</dt><dd>${esc(o.reward)}</dd></dl>`:""}
   ${equipBox(o)}
   <div><h4>必要な耐性 ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${needChips(o.need,o.dmg)}</div>
   <div><h4>編成パターン（${parties.length}）${hits!=null?` <span class="badge ${hits?"new":"warn"}">${esc(S.myJob)}が入る：${hits}</span>`:""}</h4>
-   ${parties.length?parties.map(partyHTML).join(""):`<p class="lead">編成パターンは準備中です（耐性情報のみ）。情報があれば「誤りを報告」から教えてください。</p>`}</div>
+   ${parties.length?parties.map(partyHTML).join(""):`<p class="lead">${o.g==="邪神の宮殿"?"獄ごとに職業・武器の制限が変わるため、決まった編成は載せていません。制限に合わせて、上の「装備の目安」と倒す順を参考にしてください。":"編成パターンは準備中です。情報があれば「誤りを報告」から教えてください。"}</p>`}</div>
   ${o.acts&&o.acts.length?`<details class="acts"><summary>主な行動と対策（${o.acts.length}）</summary><ul>${o.acts.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></details>`:""}
   ${o.tips?`<div class="tips"><b>注意点</b>　${esc(o.tips)}</div>`:""}
   ${cardActions(kind,o)}
