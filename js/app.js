@@ -104,12 +104,13 @@ function equipBox(o){ if(!o.weak && !o.need && !o.dmg) return "";
    <dt>防具（体・盾）</dt><dd>${arm}</dd>
    <dt>頭・足・アクセ</dt><dd>${acc}</dd>
    ${o.prio?`<dt>耐性の重要度</dt><dd>${esc(o.prio)}<br><span class="hint">◎必須 ○あると楽 △余裕があれば</span></dd>`:""}
+   ${o.resnote?`<dt>耐性について</dt><dd>${esc(o.resnote)}</dd>`:""}
    ${o.gear?`<dt>おすすめ装備</dt><dd>${esc(o.gear)}</dd>`:""}
   </dl></div>`; }
 // 参加ガイドと「この情報で参加できるか」のチェック
 function joinInfo(kind,o){ return kind==="coin"?COIN_INFO:(typeof GINFO!=="undefined"?GINFO[o.g]:null); }
 function readiness(kind,o){ const g=joinInfo(kind,o)||{}; const ok=(t)=>!!t&&!/要確認/.test(t);
-  return [["参加条件・行き方",ok(g.cond)&&ok(g.where)],["弱点",!!o.weak],["耐性",!!((o.need&&o.need.length)||(o.dmg&&o.dmg.length))],["編成",!!(o.parties&&o.parties.length)],["立ち回り",!!((o.acts&&o.acts.length)||o.tips)],["仲間モンスター",ok(g.pet)]]; }
+  return [["参加条件・行き方",ok(g.cond)&&ok(g.where)],["弱点",!!o.weak],["耐性",!!((o.need&&o.need.length)||(o.dmg&&o.dmg.length)||o.resnote)],["編成",!!(o.parties&&o.parties.length)],["立ち回り",!!((o.acts&&o.acts.length)||o.tips)],["仲間モンスター",ok(g.pet)]]; }
 function guideBox(kind,o){ const g=joinInfo(kind,o); const r=readiness(kind,o); const lack=r.filter(x=>!x[1]).length;
   const chips=r.map(([t,v])=>`<span class="chip ${v?"ok":"ng"}">${esc(t)}${v?" ✓":" 不足"}</span>`).join("");
   return `<details class="guide"><summary>参加ガイド <span class="badge ${lack?"warn":"new"}">${lack?"不足 "+lack:"そろっています"}</span></summary>
@@ -132,7 +133,7 @@ function quickBox(kind,o){
     jobs = top.length?`<div class="qrow"><span class="tier t1">例</span><div class="chips">${jobChips(top)}</div></div><p class="hint">下の編成例によく出てくる職業です</p>`:`<p class="lead">職業の情報は準備中です</p>`; }
   const pt=prioTiers(o.prio); const has=pt["◎"].length||pt["○"].length;
   const res = has ? ["◎","○","△"].filter(k=>pt[k].length).map(k=>`<div class="qrow"><span class="tier t${"◎○△".indexOf(k)}">${k==="◎"?"必須":k==="○"?"あると楽":"余裕があれば"}</span><div class="qtext">${esc(pt[k].join("／"))}</div></div>`).join("")
-    : `<div class="qrow"><span class="tier t0">必須</span><div class="qtext">${esc([...(o.need||[]).map(x=>x+"ガード"),...(o.dmg||[]).map(x=>x+"ダメージ減")].join("・")||"特になし")}</div></div>`;
+    : `<div class="qrow"><span class="tier t0">${!(o.need||[]).length&&!(o.dmg||[]).length&&o.resnote?"目安":"必須"}</span><div class="qtext">${esc([...(o.need||[]).map(x=>x+"ガード"),...(o.dmg||[]).map(x=>x+"ダメージ減")].join("・")||o.resnote||"特になし")}</div></div>`;
   const w=o.weak?esc(o.weak.split(/[（(]/)[0]):"情報なし";
   return `<div class="quick">
    <div class="qsec"><h4>行くならこの職業</h4>${jobs}</div>
