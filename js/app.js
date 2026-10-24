@@ -60,7 +60,23 @@ let cur="home", q="", onlyId="";
 function counts(){ const nq=norm(q); const m={}; VIEWS.forEach(v=>{ if(v.list && nq){ m[v.id]=v.list().filter(o=>textOf(o).includes(nq)).length; } }); return m; }
 function renderTabs(){ const c=counts(); $("#tabs").innerHTML = VIEWS.map(v=>`<button class="tab" role="tab" data-v="${v.id}" aria-selected="${v.id===cur}">${esc(v.label)}${c[v.id]!=null?`<span class="n">${c[v.id]}</span>`:""}</button>`).join(""); const a=$(`.tab[aria-selected="true"]`); if(a) a.scrollIntoView({inline:"center",block:"nearest"}); }
 
-function go(v, opts={}){ if(!VIEWS.find(x=>x.id===v)) v="home"; cur=v; if(!opts.keepId) onlyId=""; renderTabs(); render(); if(!opts.noScroll) window.scrollTo({top:0}); try{ history.replaceState(null,"","#"+v); }catch(e){} gcCount("/"+v); }
+let depth=0; try{ history.scrollRestoration="manual"; }catch(e){}
+function go(v, opts={}){ if(!VIEWS.find(x=>x.id===v)) v="home";
+  const changed = v!==cur || (!opts.keepId && onlyId) || opts.keepId;
+  if(!opts.fromPop && !opts.init){ try{ history.replaceState(Object.assign({},history.state,{v:cur,id:onlyId,y:window.scrollY,d:depth}),""); }catch(e){} }
+  cur=v; if(!opts.keepId) onlyId="";
+  renderTabs(); render(); updateNav();
+  if(opts.fromPop){ const y=opts.y||0; window.scrollTo({top:y}); requestAnimationFrame(()=>window.scrollTo({top:y})); }
+  else if(!opts.noScroll) window.scrollTo({top:0});
+  try{ const url=location.pathname+location.search.replace(/[?&](v|id)=[^&]*/g,"").replace(/^&/,"?")+"#"+v;
+    if(opts.init) history.replaceState({v,id:onlyId,y:0,d:0},"",url);
+    else if(!opts.fromPop && changed){ depth++; history.pushState({v,id:onlyId,y:0,d:depth},"",url); }
+  }catch(e){}
+  updateNav(); gcCount("/"+v); }
+function updateNav(){ const b=$("#nav-back"); if(b) b.hidden = depth<=0 && cur==="home"; }
+window.addEventListener("popstate",(e)=>{ const st=e.state||{v:(location.hash||"#home").slice(1),y:0,d:0}; depth=st.d||0; onlyId=st.id||""; go(st.v||"home",{fromPop:true,keepId:true,y:st.y}); });
+function goBack(){ if(depth>0) history.back(); else go("home"); }
+window.addEventListener("scroll",()=>{ const t=$("#nav-top"); if(t) t.hidden = window.scrollY<600; },{passive:true});
 
 // ---- 共通UI ----
 function jobSelect(id){ return `<select id="${id}" aria-label="自分の職業"><option value="">自分の職業：選ばない</option>${JOBS.map(j=>`<option ${S.myJob===j.n?"selected":""}>${esc(j.n)}</option>`).join("")}</select>`; }
@@ -287,7 +303,8 @@ function boot(){ let v=(location.hash||"").slice(1); try{ const u=new URLSearchP
   $("#btn-theme").addEventListener("click",()=>{ const order=["","light","dark"]; S.theme=order[(order.indexOf(S.theme||"")+1)%3]; save(); applyLook(); toast(S.theme===""?"テーマ：端末に合わせる":S.theme==="dark"?"テーマ：ダーク":"テーマ：ライト"); if(cur==="my") render(); });
   $("#btn-font").addEventListener("click",()=>{ const order=["s","m","l","xl"]; S.font=order[(order.indexOf(S.font||"m")+1)%4]; save(); applyLook(); toast("文字サイズ："+({s:"小",m:"中",l:"大",xl:"特大"})[S.font]); });
   $("#foot-author").textContent=CONFIG.author||""; $("#foot-date").textContent=DATA_UPDATED;
-  go(v||"home",{keepId:true});
+  $("#nav-back").addEventListener("click",goBack); $("#nav-top").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+  go(v||"home",{keepId:true,init:true});
   if("serviceWorker" in navigator && location.protocol==="https:" && !/claude/.test(location.hostname)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 }
 boot();
