@@ -175,3 +175,14 @@ ul.sapo-l{list-style:none;padding:0;margin:4px 0}
 ul.sapo-l>li{border-top:1px dashed var(--line);padding:6px 0}
 ul.sapo-l .kv{margin:2px 0 0}
 details.sapo{min-width:0}
+/* スマホで募集文などのフォームがはみ出さないように */
+.panel.filters,.frow{min-width:0;max-width:100%}
+.frow>select,.frow>.input,.frow>textarea{min-width:0;max-width:100%}
+#r-con,#r-want,#r-cmt{width:100%}
+textarea.input{width:100%;box-sizing:border-box}
+.grid>*{min-width:0}
+.card{min-width:0;overflow-wrap:anywhere}
+.card>*,.quick>*,.qsec>*{min-width:0}
+.badge{max-width:100%;white-space:normal}
+/* パソコン・タブレットの広い画面ではタブを折り返して全部表示 */
+@media (min-width:768px){ .tabs{flex-wrap:wrap;overflow-x:visible} }

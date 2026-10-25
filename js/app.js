@@ -7,13 +7,20 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&
 const norm = (s) => String(s||"").toLowerCase().replace(/[ァ-ン]/g, c => String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/\s+/g,"");
 
 // ---- 保存データ ----
-const DEF = {fav:{},done:{},petDone:{},myRes:[],myJob:"",gear:"",theme:"",font:"m",
+const DEF = {fav:{},done:{},petDone:{},myRes:[],myJob:"",gear:"",resByJob:{},gearByJob:{},theme:"",font:"m",
   daily:{items:null,checked:{},key:""},weekly:{items:null,checked:{},key:""},
   zel:{cells:Array(12).fill(0),uroko:0,floor:20,parts:{},want:{}},
   f:{coinCat:"",onlyJob:false,onlyRes:false,ver7:false,hideDone:false,sort:"ver",evGroup:"",petT:""}};
 let S;
 function load(){ try{ S = Object.assign(structuredClone(DEF), JSON.parse(localStorage.getItem(KEY)||"{}")); }catch(e){ S = structuredClone(DEF); }
-  S.f = Object.assign(structuredClone(DEF.f), S.f||{}); S.zel = Object.assign(structuredClone(DEF.zel), S.zel||{}); }
+  S.f = Object.assign(structuredClone(DEF.f), S.f||{}); S.zel = Object.assign(structuredClone(DEF.zel), S.zel||{});
+  // 職業ごとの耐性・装備メモ（前の版の記録は、その時の職業のものとして引き継ぐ）
+  S.resByJob=S.resByJob||{}; S.gearByJob=S.gearByJob||{}; const k=S.myJob||"";
+  if(!(k in S.resByJob)) S.resByJob[k]=[...(S.myRes||[])]; if(!(k in S.gearByJob)) S.gearByJob[k]=S.gear||"";
+  S.myRes=S.resByJob[k]; S.gear=S.gearByJob[k]; }
+function setJob(j){ S.resByJob[S.myJob||""]=S.myRes; S.gearByJob[S.myJob||""]=S.gear; S.myJob=j||"";
+  if(!(S.myJob in S.resByJob)) S.resByJob[S.myJob]=[]; if(!(S.myJob in S.gearByJob)) S.gearByJob[S.myJob]="";
+  S.myRes=S.resByJob[S.myJob]; S.gear=S.gearByJob[S.myJob]; }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 load();
 
@@ -266,7 +273,7 @@ R.cal = () => { const today=jstNow().toISOString().slice(0,10); const st=(c)=> c
 R.my = () => { const miss=[...COIN.map(o=>["coin",o]),...EV.map(o=>["event",o])].filter(([,o])=>missing(o.need).length);
   const top={}; miss.forEach(([,o])=>missing(o.need).forEach(s=>top[s]=(top[s]||0)+1)); const rank=Object.entries(top).sort((a,b)=>b[1]-a[1]);
   return `<h2>マイ耐性・装備</h2><div class="grid two"><div class="panel"><h3>自分の職業</h3>${jobSelect("my-job")}<p class="lead">選ぶと、ボスごとに「自分が入れる編成」と「サポで借りる職業」が出ます。</p></div>
-  <div class="panel"><h3>持っている耐性（100%）</h3><div class="chips">${STATUS.map(s=>`<button class="chip" data-res="${s}" aria-pressed="${S.myRes.includes(s)}">${s}</button>`).join("")}</div><p class="lead">今の装備で100%になっている耐性をタップ。</p></div></div>
+  <div class="panel"><h3>持っている耐性（100%）${S.myJob?`：${esc(S.myJob)}`:"：職業を選ばないとき"}</h3><div class="chips">${STATUS.map(s=>`<button class="chip" data-res="${s}" aria-pressed="${S.myRes.includes(s)}">${s}</button>`).join("")}</div><p class="lead">今の装備で100%になっている耐性をタップ。職業ごとに別々に記録され、職業を切り替えるとその職業の耐性に変わります。</p>${(()=>{ const o=Object.entries(S.resByJob).filter(([k,v])=>k!==(S.myJob||"")&&v&&v.length); return o.length?`<div class="frow"><span class="lead">ほかの職業からコピー：</span>${o.map(([k])=>`<button class="chip" data-copyres="${esc(k)}">${esc(k||"職業なし")}</button>`).join("")}</div>`:""; })()}${Object.keys(S.resByJob).filter(k=>S.resByJob[k]&&S.resByJob[k].length).length?`<p class="hint">記録がある職業：${esc(Object.keys(S.resByJob).filter(k=>S.resByJob[k].length).map(k=>(k||"職業なし")+"（"+S.resByJob[k].length+"）").join("・"))}</p>`:""}</div></div>
   <div class="panel"><h3>足りない耐性のまとめ</h3>${S.myRes.length?(rank.length?`<p class="lead">耐性が足りないボス・コンテンツ：${miss.length}件。よく必要になる順：</p><div class="chips">${rank.map(([s,n])=>`<span class="chip ng">${esc(s)}（${n}件）</span>`).join("")}</div>`:`<p class="lead">登録した耐性で、すべてのボスの必要耐性を満たしています。</p>`):`<p class="lead">耐性を登録するとここに表示されます。</p>`}</div>
   <div class="panel"><h3>装備メモ</h3><textarea class="input" id="gear" placeholder="例：竜術士 アクセ＝赤竜の首かざり・軍神のゆびわ、転び100、呪文ダメ減…">${esc(S.gear)}</textarea></div>
   <div class="grid two"><div class="panel"><h3>表示の設定</h3><div class="frow"><label>テーマ</label>${[["","端末に合わせる"],["light","ライト"],["dark","ダーク"]].map(([v,l])=>`<button class="chip" data-theme-set="${v}" aria-pressed="${(S.theme||"")===v}">${l}</button>`).join("")}</div>
@@ -330,8 +337,9 @@ document.addEventListener("click", async (e)=>{ const t=e.target.closest("button
   if(d.v){ go(d.v); return; } if(d.go){ go(d.go); return; }
   if(d.open){ const [k,id]=d.open.split(":"); onlyId=id; go(k==="coin"?"coin":k==="event"?"event":"lv",{keepId:true}); return; }
   if(d.tg){ S.f[d.tg]=!S.f[d.tg]; save(); render(); return; }
+  if(d.copyres!==undefined){ S.myRes.splice(0,S.myRes.length,...(S.resByJob[d.copyres]||[])); save(); toast("耐性をコピーしました"); render(); return; }
   if(d.res){ const i=S.myRes.indexOf(d.res); i<0?S.myRes.push(d.res):S.myRes.splice(i,1); save(); render(); return; }
-  if(d.setjob){ S.myJob=d.setjob; save(); toast(`自分の職業を「${d.setjob}」にしました`); go("coin"); return; }
+  if(d.setjob){ setJob(d.setjob); save(); toast(`自分の職業を「${d.setjob}」にしました`); go("coin"); return; }
   if(d.themeSet!==undefined){ S.theme=d.themeSet; save(); applyLook(); render(); return; }
   if(d.fontSet){ S.font=d.fontSet; save(); applyLook(); render(); return; }
   if(d.rate){ fbPre.rate=d.rate; document.querySelectorAll("[data-rate]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.rate===d.rate)); return; }
@@ -356,7 +364,7 @@ document.addEventListener("click", async (e)=>{ const t=e.target.closest("button
 });
 document.addEventListener("keydown",(e)=>{ const c=e.target.closest("[data-cell]"); if(c&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); c.click(); } });
 document.addEventListener("change",(e)=>{ const t=e.target, d=t.dataset;
-  if(t.id==="f-job"||t.id==="my-job"){ S.myJob=t.value; save(); render(); }
+  if(t.id==="f-job"||t.id==="my-job"){ setJob(t.value); save(); render(); }
   else if(t.id==="f-cat"){ S.f.coinCat=t.value; save(); render(); }
   else if(t.id==="f-sort"){ S.f.sort=t.value; save(); render(); }
   else if(t.id==="f-group"){ S.f.evGroup=t.value; save(); render(); }
@@ -367,7 +375,7 @@ document.addEventListener("change",(e)=>{ const t=e.target, d=t.dataset;
   else if(["r-con","r-purpose","r-job"].includes(t.id)){ if(t.id==="r-con"){ const v=t.value; if(v){ const [k,id]=v.split(":"); const o=(k==="coin"?COIN:EV).find(x=>x.id===id); const p=(o.parties||[]).find(p=>partyHas(p,$("#r-job").value)); if(p&&!$("#r-want").value) $("#r-want").value=borrow(p,$("#r-job").value).filter(s=>!/\(仲間\)/.test(s)).join("・"); } } buildRecruit(); }
 });
 document.addEventListener("input",(e)=>{ const t=e.target; if(t.id==="q"){ q=t.value; clearTimeout(window._qt); window._qt=setTimeout(()=>{ renderTabs(); if(VIEWS.find(v=>v.id===cur).list||cur==="home"){ if(cur==="home"&&q){ const c=counts(); const best=Object.entries(c).sort((a,b)=>b[1]-a[1])[0]; if(best&&best[1]) { go(best[0],{noScroll:true}); return; } } render(); } },200); }
-  else if(t.id==="gear"){ S.gear=t.value; save(); }
+  else if(t.id==="gear"){ S.gear=t.value; S.gearByJob[S.myJob||""]=S.gear; save(); }
   else if(t.dataset.zw){ S.zel.want[t.dataset.zw]=t.value; save(); }
   else if(["r-want","r-cmt"].includes(t.id)){ buildRecruit(); } });
 
@@ -379,11 +387,13 @@ async function sendFeedback(){ const F=CONFIG.formFields; const body=new URLSear
   try{ await fetch(CONFIG.formAction,{method:"POST",mode:"no-cors",body}); fbPre={}; toast("送信しました。ありがとうございます！"); render(); gcCount("/feedback-sent"); }catch(e){ toast("送信できませんでした。通信状態を確認してください"); } }
 
 // ---- 起動 ----
-function boot(){ let v=(location.hash||"").slice(1); try{ const u=new URLSearchParams(location.search); if(u.get("v")) v=u.get("v"); if(u.get("id")) onlyId=u.get("id"); if(u.get("job")&&jobNames.includes(u.get("job"))) S.myJob=u.get("job"); if(u.get("q")){ q=u.get("q"); $("#q").value=q; } }catch(e){}
+function boot(){ let v=(location.hash||"").slice(1); try{ const u=new URLSearchParams(location.search); if(u.get("v")) v=u.get("v"); if(u.get("id")) onlyId=u.get("id"); if(u.get("job")&&jobNames.includes(u.get("job"))) setJob(u.get("job")); if(u.get("q")){ q=u.get("q"); $("#q").value=q; } }catch(e){}
   $("#q").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); });
   $("#btn-theme").addEventListener("click",()=>{ const order=["","light","dark"]; S.theme=order[(order.indexOf(S.theme||"")+1)%3]; save(); applyLook(); toast(S.theme===""?"テーマ：端末に合わせる":S.theme==="dark"?"テーマ：ダーク":"テーマ：ライト"); if(cur==="my") render(); });
   $("#btn-font").addEventListener("click",()=>{ const order=["s","m","l","xl"]; S.font=order[(order.indexOf(S.font||"m")+1)%4]; save(); applyLook(); toast("文字サイズ："+({s:"小",m:"中",l:"大",xl:"特大"})[S.font]); });
   $("#foot-author").textContent=CONFIG.author||""; $("#foot-date").textContent=DATA_UPDATED;
+  // マウスのホイールでもタブを左右に動かせるように
+  $("#tabs").addEventListener("wheel",e=>{ const t=e.currentTarget; if(t.scrollWidth<=t.clientWidth) return; if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){ t.scrollLeft+=e.deltaY; e.preventDefault(); } },{passive:false});
   $("#nav-back").addEventListener("click",goBack); $("#nav-top").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
   go(v||"home",{keepId:true,init:true});
   if("serviceWorker" in navigator && location.protocol==="https:" && !/claude/.test(location.hostname)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
