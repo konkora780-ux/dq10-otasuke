@@ -253,7 +253,7 @@ R.support = () => { const nq=norm(S.q||"");
   <div class="grid two">${jobs.map(n=>{ const d=SAPO_JOB[n]; return `<div class="panel"><div class="card-h"><h3>${esc(n)}</h3><span class="badge">${esc((JOBS.find(j=>j.n===n)||{}).g||"")}</span></div><dl class="kv"><dt>武器（検索で指定）</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)}</dd><dt>見るところ</dt><dd>${esc(d.c)}</dd></dl></div>`; }).join("")}</div>
   ${sp.length?`<h3>コンテンツごとの特別な条件</h3><div class="grid two">${sp.map(([k,g])=>`<div class="panel"><h3>${esc(k)}</h3>${g.res?`<p class="qtext">耐性：${esc(g.res.join("・"))}</p>`:""}${g.gear?`<p class="qtext">装備：${esc(g.gear)}</p>`:""}${g.jobs?`<dl class="kv">${Object.entries(g.jobs).map(([j,d])=>`<dt>${esc(j)}</dt><dd>${esc(d.w)}／${esc(d.s)}／${esc(d.c)}</dd>`).join("")}</dl>`:""}${g.note?`<p class="hint">${esc(g.note)}</p>`:""}</div>`).join("")}</div>`:""}
   <h3>知っておくと便利なこと</h3><div class="grid two">${SUPPORT_GUIDE.map(g=>`<div class="panel"><h3>${esc(g.h)}</h3><p class="lead">${esc(g.b)}</p></div>`).join("")}</div>
-  <p class="src">出典：${srcLinks(["kyoku_sup","ranbu_sup","quucha_bar81","draquex_buki","masa_banma","kyoku_shiren"])}</p>`; };
+  <p class="src">出典：${srcLinks(["kyoku_sup","ranbu_sup","quucha_bar81","draquex_buki","masa_banma","kyoku_shiren","kyoku_job_injya","kyoku_job_ryu","kyoku_job_kaizoku","kyoku_job_guard","kyoku_job_storm","kyoku_job_death"])}</p>`; };
 
 R.zel = () => { const z=S.zel; const lab=["","開","下","ボ","鱗","箱"]; const cls=["","open","down","boss","open","open"];
   const parts=["あたま","からだ上","からだ下","うで","あし"];
