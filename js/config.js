@@ -2,7 +2,7 @@
 // 手順書「帰宅後にやること」を見ながら値を入れてください。空のままでもアプリは動きます。
 const CONFIG = {
   // GoatCounter（アクセス数）。https://○○.goatcounter.com の「○○」の部分
-  goatcounterCode: "",
+  goatcounterCode: "dq10otasuke",
 
   // Googleフォーム（評価・コメント・誤り報告）
   // formAction: フォームの送信先。"https://docs.google.com/forms/d/e/〇〇/formResponse" の形
