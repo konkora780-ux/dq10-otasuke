@@ -186,3 +186,5 @@ textarea.input{width:100%;box-sizing:border-box}
 .badge{max-width:100%;white-space:normal}
 /* パソコン・タブレットの広い画面ではタブを折り返して全部表示 */
 @media (min-width:768px){ .tabs{flex-wrap:wrap;overflow-x:visible} }
+
+.joborb ul{margin:.3em 0 .3em 1.2em;padding:0}.joborb .badge{margin-bottom:.2em}

@@ -36,12 +36,12 @@ const DAILY_DEFAULT = ["日替わり討伐を受ける・報告する","強ボ�
 const WEEKLY_DEFAULT = ["試練の門","まもの博士の冒険的な実験（ダークアドミラル）","週替わり討伐（要確認）","ピラミッドの秘宝（要確認）","達人クエスト（要確認）"];
 
 // カレンダー（start/end は YYYY-MM-DD。end がない＝終了日要確認）
-const CAL_UPDATED = "2026-10-24";
+const CAL_UPDATED = "2026-10-25";
 const CAL = [
  {start:"2026-10-16",title:"バージョン8.1「導きの風」公開",kind:"アップデート",src:"ver81"},
  {start:"2026-10-20",title:"新同盟ボス「ブルータイラント」",kind:"強敵",src:"ver81"},
  {start:"2026-10-20",end:"2026-10-26",title:"まもの博士 同盟バトル（毎月20日〜26日）",kind:"毎月",src:"lab"},
- {start:"2026-10-23",title:"ハロウィンイベント「ダミー★オア★ヤミー！」",kind:"イベント",src:"ver81"},
+ {start:"2026-10-23",end:"2026-11-03",title:"ハロウィンイベント「ダミー★オア★ヤミー！」（11月3日23:59まで）",kind:"イベント",src:"ver81"},
  {start:"2026-11-10",title:"テンの日（毎月10日）",kind:"毎月",src:"ranbu_sup"},
  {start:"2026-11-20",end:"2026-11-26",title:"まもの博士 同盟バトル",kind:"毎月",src:"lab"},
  {start:"2026-12-10",title:"テンの日",kind:"毎月",src:"ranbu_sup"}

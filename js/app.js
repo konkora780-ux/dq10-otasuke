@@ -88,9 +88,12 @@ window.addEventListener("scroll",()=>{ const t=$("#nav-top"); if(t) t.hidden = w
 // ---- 共通UI ----
 function jobSelect(id){ return `<select id="${id}" aria-label="自分の職業"><option value="">自分の職業：選ばない</option>${JOBS.map(j=>`<option ${S.myJob===j.n?"selected":""}>${esc(j.n)}</option>`).join("")}</select>`; }
 function needChips(need, dmg){ const miss=missing(need); const st=(need||[]).map(s=>`<span class="chip ${S.myRes.length?(miss.includes(s)?"ng":"ok"):""}">${esc(s)}${S.myRes.length?(miss.includes(s)?" ✕":" ✓"):""}</span>`).join(""); const dm=(dmg||[]).map(s=>`<span class="chip dmg">${esc(s)}軽減</span>`).join(""); return (st||dm)?`<div class="chips">${st}${dm}</div>`:`<span class="lead">特になし</span>`; }
-function partyHTML(p){ const hit=partyHas(p,S.myJob); const jobs=p.jobs.map(s=>{ const me=S.myJob&&slotFits(s,S.myJob)&&s===S.myJob; const free=s in FREE_SLOTS; return `<span class="chip ${me?"me":""} ${free?"free":""}">${esc(s)}</span>`; }).join("");
-  const b = hit ? `<div class="borrow">サポで借りる：<b>${esc(borrow(p,S.myJob).join("・"))}</b></div>` : "";
-  return `<div class="party ${hit?"hit":""}"><div class="chips">${jobs}</div>${p.note?`<div class="note">${esc(p.note)}</div>`:""}${b}<div>${eraBadge(p.era)}</div></div>`; }
+function partyHTML(p,o){ const hit=partyHas(p,S.myJob); const jobs=p.jobs.map(s=>{ const me=S.myJob&&slotFits(s,S.myJob)&&s===S.myJob; const free=s in FREE_SLOTS; return `<span class="chip ${me?"me":""} ${free?"free":""}">${esc(s)}</span>`; }).join("");
+  // サポ仲間を連れて行けないコンテンツでは「サポで借りる」と出さない
+  const no=o&&o.g&&typeof SAPO_G!=="undefined"&&SAPO_G[o.g]&&SAPO_G[o.g].no; const lab=!no?"サポで借りる":o.g==="異界アスタルジア"?"一緒に戦う異界の仲間":"ほかの枠（オートマッチングなどの冒険者）";
+  const b = hit ? `<div class="borrow">${lab}：<b>${esc(borrow(p,S.myJob).join("・"))}</b></div>` : "";
+  const kind = p.ref?`<span class="badge old">参考案：${esc(p.ref)}</span>`:p.conf?`<span class="badge new">このコンテンツで確認された編成</span>`:"";
+  return `<div class="party ${hit?"hit":""}">${kind?`<div>${kind}</div>`:""}<div class="chips">${jobs}</div>${p.note?`<div class="note">${esc(p.note)}</div>`:""}${b}<div>${eraBadge(p.era)}</div></div>`; }
 function cardActions(kind, o){ const id=o.id; return `<div class="actions">
   <button class="btn" data-act="fav" data-id="${kind}:${esc(id)}" aria-pressed="${!!S.fav[kind+":"+id]}">☆ お気に入り</button>
   ${kind!=="lv"?`<button class="btn" data-act="done" data-id="${kind}:${esc(id)}" aria-pressed="${!!S.done[kind+":"+id]}">✓ 討伐済み</button>`:""}
@@ -127,6 +130,13 @@ function guideBox(kind,o){ const g=joinInfo(kind,o); const r=readiness(kind,o); 
   ${lack?`<p class="hint">「未掲載」の項目は調査中です。知っている情報があれば「誤りを報告」から教えてください。</p>`:""}</details>`; }
 // ひと目で分かる：おすすめ職業・必要な耐性・攻め方
 function prioTiers(t){ const out={"◎":[],"○":[],"△":[]}; (t||"").split(/\s*[　]\s*/).forEach(seg=>{ const m=seg.match(/^([◎○△])(.*)$/); if(m) out[m[1]].push(m[2]); }); return out; }
+// 職業評価の根拠：src＝出典に◎○が明記／ref＝通常版など別の出典の評価を参考／app＝アプリが編成例・役割から判断
+function jtBasis(t){ return t.basis||(/明記なし|編成例・役割から/.test(t.note||"")?"app":"src"); }
+function basisLine(t){ const b=jtBasis(t);
+  if(b==="app"){ const ex=(t.note||"").replace(/^攻略ページの編成例・役割から（◎○の明記なし）。?/,""); const why=t.why||("出典に◎○の明記がないため、攻略ページの編成例と役割からアプリが判断しました"+(ex?"。補足："+ex:""));
+    return `<p class="hint"><span class="badge warn">アプリ独自の目安</span> ${esc(why)}</p>`; }
+  if(b==="ref") return `<p class="hint"><span class="badge old">参考（別の出典の評価）</span> ${esc(t.why||"")}</p>`;
+  return `<p class="hint"><span class="badge new">出典の評価</span> ◎○は攻略サイトに書かれている評価です（出典は下の「出典」）</p>`; }
 function jobChips(list,cls){ return (list||[]).map(j=>`<span class="chip ${cls||""} ${S.myJob===j?"me":""}">${esc(j)}</span>`).join(""); }
 function quickBox(kind,o){
   let jobs="";
@@ -134,21 +144,23 @@ function quickBox(kind,o){
     jobs=`${mine!=null?`<p class="mine">${esc(S.myJob)}は ${mine?`<b class="tier t${"◎○△×".indexOf(mine)}">${mine}</b>`:"評価の記載なし"}</p>`:""}
     ${["◎","○"].filter(k=>t[k]&&t[k].length).map(k=>`<div class="qrow"><span class="tier t${"◎○△×".indexOf(k)}">${k}</span><div class="chips">${jobChips(t[k])}</div></div>`).join("")}
     ${(t["△"]||t["×"])?`<details class="roles"><summary>△・×の職業も見る</summary>${["△","×"].filter(k=>t[k]&&t[k].length).map(k=>`<div class="qrow"><span class="tier t${"◎○△×".indexOf(k)}">${k}</span><div class="chips">${jobChips(t[k])}</div></div>`).join("")}</details>`:""}
-    ${t.note?`<p class="hint">${esc(t.note)}</p>`:""}
+    ${t.note&&jtBasis(t)!=="app"?`<p class="hint">${esc(t.note)}</p>`:""}
     ${t.roles?`<details class="roles"><summary>役割ごとに見る</summary><dl class="kv">${t.roles.map(([r,v])=>`<dt>${esc(r)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></details>`:""}
     ${t.four?`<p class="hint">${esc(t.four)}</p>`:""}`;
   } else { const c={}; (o.parties||[]).forEach(p=>p.jobs.forEach(j=>{ if(!(j in FREE_SLOTS)) c[j]=(c[j]||0)+1; })); const top=Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,8);
-    jobs = top.length?`<div class="qrow"><span class="tier t1">例</span><div class="chips">${jobChips(top)}</div></div><p class="hint">下の編成例によく出てくる職業です</p>`:`<p class="lead">職業の情報は準備中です</p>`; }
+    jobs = top.length?`<div class="qrow"><span class="tier t1">例</span><div class="chips">${jobChips(top)}</div></div><p class="hint"><span class="badge warn">アプリ独自の目安</span> 出典に◎○の評価がないため、下の${(o.parties||[]).every(p=>p.ref)?"参考案（通常版の編成）":"編成例"}によく出てくる職業を並べています</p>`:`<p class="lead">職業の情報は準備中です</p>`; }
   const pt=prioTiers(o.prio); const has=pt["◎"].length||pt["○"].length;
   const res = has ? ["◎","○","△"].filter(k=>pt[k].length).map(k=>`<div class="qrow"><span class="tier t${"◎○△".indexOf(k)}">${k==="◎"?"必須":k==="○"?"あると楽":"余裕があれば"}</span><div class="qtext">${esc(pt[k].join("／"))}</div></div>`).join("")
     : `<div class="qrow"><span class="tier t0">${!(o.need||[]).length&&!(o.dmg||[]).length&&o.resnote?"目安":"必須"}</span><div class="qtext">${esc([...(o.need||[]).map(x=>x+"ガード"),...(o.dmg||[]).map(x=>x+"ダメージ減")].join("・")||o.resnote||"特になし")}</div></div>`;
   const w=o.weak?esc(o.weak.split(/[（(]/)[0]):"情報なし";
   return `<div class="quick">
-   <div class="qsec"><h4>行くならこの職業</h4>${jobs}</div>
+   <div class="qsec"><h4>行くならこの職業</h4>${o.jt?basisLine(o.jt):""}${jobs}</div>
    <div class="qsec"><h4>必要な耐性 ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${res}</div>
    <div class="qsec"><h4>攻め方</h4><p class="qtext">弱点：<b>${w}</b>${o.res&&o.res!=="—"?`　効きにくい：${esc(o.res.split(/[（(]/)[0])}`:""}</p></div>
   </div>`; }
 // ソロ（自分＋サポート仲間3人）で行くなら：雇う職業・検索条件・装備
+// さくせんの確かさ：src＝攻略記事に例がある／それ以外＝一般的な目安（未確認）
+function sakuBadge(d){ return d&&d.sq==="src"?`<span class="badge new">攻略記事の例あり</span>`:`<span class="badge warn">一般的な目安（未確認）</span>`; }
 const SAPO_ST=["即死","封印","眠り","混乱","マヒ","転び","踊り","魅了","幻惑","おびえ","呪い","どく","MP吸収","弱体","しばり","ショック","毒"];
 function sapoRes(o,g){ if(g&&g.res) return {main:g.res,more:[]};
   const pt=prioTiers(o.prio); const sp=t=>t.join("・").replace(/[（(][^）)]*[）)]/g,"").split("・").map(x=>x.trim()).filter(Boolean);
@@ -163,7 +175,7 @@ function sapoBox(kind,o){ if(kind!=="coin"&&kind!=="event") return ""; const g=(
   const r=sapoRes(o,g); const w=(o.weak||"").split(/[（(]/)[0]; const we=ELEM.filter(e=>w.includes(e)&&!/^なし/.test(w));
   const rows=uniq.map(j=>{ const d=(g.jobs&&g.jobs[j])||SAPO_JOB[j]; if(!d) return `<li><b>${esc(j)}</b>：${j in FREE_SLOTS?"この枠は好きな職業でOK（下の共通の目安で探す）":PET.find(x=>x.n===j)?`仲間モンスター（${esc([PET.find(x=>x.n===j).role,PET.find(x=>x.n===j).w&&"武器："+PET.find(x=>x.n===j).w].filter(Boolean).join("・"))}）。育て方は「仲間モンスター」タブ`:"目安は準備中"}</li>`;
     const atk=/ガンガン/.test(d.s)&&we.length?`。武器の属性が${we.join("・")}ならなお良い`:"";
-    return `<li><b>${esc(j)}</b><dl class="kv"><dt>武器</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)}</dd><dt>見るところ</dt><dd>${esc(d.c+atk)}</dd></dl></li>`; }).join("");
+    return `<li><b>${esc(j)}</b><dl class="kv"><dt>武器</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)} ${sakuBadge(d)}</dd><dt>見るところ</dt><dd>${esc(d.c+atk)}</dd></dl></li>`; }).join("");
   return `<details class="sapo"><summary>ソロ（サポ仲間）で行くなら</summary>
   <p class="qtext">自分：<b>${esc(me)}</b>${S.myJob&&me!==S.myJob?`（${esc(S.myJob)}が入る編成がないため先頭の例）`:""}　雇う：<b>${esc(hires.join("・"))}</b></p>
   ${p.note?`<p class="hint">${esc(p.note)}</p>`:""}
@@ -184,7 +196,8 @@ function bossCard(kind, o){ const done=S.done[kind+":"+o.id]; const parties=o.pa
   <div class="meta">${o.cat?`<span class="badge">${esc(o.cat)}</span>`:""}${o.g?`<span class="badge">${esc(o.g)}</span>`:""}${o.ver?`<span class="badge ${verNum(o.ver)>=7?"new":""}">実装 Ver.${esc(o.ver)}</span>`:""}${o.bosses?`<span>${esc(o.bosses)}</span>`:""}</div>
   ${quickBox(kind,o)}
   <div><h4>おすすめ編成${hits!=null?` <span class="badge ${hits?"new":"warn"}">${esc(S.myJob)}が入る：${hits}</span>`:""}</h4>
-   ${parties.length?partyHTML(top)+(rest.length?`<details class="more-parties"><summary>ほかの編成も見る（${rest.length}）</summary>${rest.map(partyHTML).join("")}</details>`:""):`<p class="lead">${o.g==="邪神の宮殿"?"獄ごとに職業・武器の制限が変わるため、決まった編成は載せていません。制限に合わせて、上の「装備の目安」と倒す順を参考にしてください。":"編成パターンは準備中です。情報があれば「誤りを報告」から教えてください。"}</p>`}</div>
+   ${parties.length&&parties.every(p=>p.ref)?`<p class="hint">このコンテンツで確認された編成は見つかっていません。下は参考案です${o.g&&SAPO_G[o.g]&&SAPO_G[o.g].no?"（サポート仲間は連れて行けません）":""}。</p>`:""}
+   ${parties.length?partyHTML(top,o)+(rest.length?`<details class="more-parties"><summary>ほかの編成も見る（${rest.length}）</summary>${rest.map(p=>partyHTML(p,o)).join("")}</details>`:""):`<p class="lead">${o.g==="邪神の宮殿"?"獄ごとに職業・武器の制限が変わるため、決まった編成は載せていません。制限に合わせて、上の「装備の目安」と倒す順を参考にしてください。":"編成パターンは準備中です。情報があれば「誤りを報告」から教えてください。"}</p>`}</div>
   ${tip1?`<div class="tips"><b>注意点</b>　${esc(tip1)}</div>`:""}
   ${(o.acts&&o.acts.length)||tipMore?`<details class="acts"><summary>注意点・主な行動と対策をすべて見る${o.acts&&o.acts.length?`（${o.acts.length}）`:""}</summary>${o.tips?`<p class="qtext">${esc(o.tips)}</p>`:""}${o.acts&&o.acts.length?`<ul>${o.acts.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>`:""}</details>`:""}
   ${sapoBox(kind,o)}
@@ -252,12 +265,12 @@ R.support = () => { const nq=norm(S.q||"");
   const jobs=JOBS.map(j=>j.n).filter(n=>SAPO_JOB[n]&&(!nq||norm(n+JSON.stringify(SAPO_JOB[n])).includes(nq)));
   const sp=Object.entries(SAPO_G).filter(([,g])=>g.res||g.jobs||g.gear);
   return `<h2>サポート仲間の探し方・早見表</h2>
-  <div class="panel"><h3>酒場での探し方（共通）</h3><ol>${SAPO_HOW.map(x=>`<li>${esc(x)}</li>`).join("")}</ol><p class="hint">さくせん：攻撃役は「ガンガンいこうぜ」、回復役は「いのちだいじに」、補助役は「バッチリがんばれ」が基本。ボスごとの条件は各カードの「ソロ（サポ仲間）で行くなら」にあります。</p></div>
+  <div class="panel"><h3>酒場での探し方（共通）</h3><ol>${SAPO_HOW.map(x=>`<li>${esc(x)}</li>`).join("")}</ol><p class="hint">さくせん：攻撃役は「ガンガンいこうぜ」、回復役は「いのちだいじに」、補助役は「バッチリがんばれ」が基本（公式FAQ：いのちだいじには回復と防御を優先）。職業ごとのさくせんには「攻略記事の例あり」（出典に設定例がある）か「一般的な目安（未確認）」（役割からの目安で、設定例の出典が見つかっていない）を付けています。ボスごとの条件は各カードの「ソロ（サポ仲間）で行くなら」にあります。</p></div>
   <h3>職業ごとの「雇うならこの条件」</h3>
-  <div class="grid two">${jobs.map(n=>{ const d=SAPO_JOB[n]; return `<div class="panel"><div class="card-h"><h3>${esc(n)}</h3><span class="badge">${esc((JOBS.find(j=>j.n===n)||{}).g||"")}</span></div><dl class="kv"><dt>武器（検索で指定）</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)}</dd><dt>見るところ</dt><dd>${esc(d.c)}</dd></dl></div>`; }).join("")}</div>
+  <div class="grid two">${jobs.map(n=>{ const d=SAPO_JOB[n]; return `<div class="panel"><div class="card-h"><h3>${esc(n)}</h3><span class="badge">${esc((JOBS.find(j=>j.n===n)||{}).g||"")}</span></div><dl class="kv"><dt>武器（検索で指定）</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)} ${sakuBadge(d)}${d.sn?`<br><span class="hint">${esc(d.sn)}</span>`:""}</dd><dt>見るところ</dt><dd>${esc(d.c)}</dd></dl></div>`; }).join("")}</div>
   ${sp.length?`<h3>コンテンツごとの特別な条件</h3><div class="grid two">${sp.map(([k,g])=>`<div class="panel"><h3>${esc(k)}</h3>${g.res?`<p class="qtext">耐性：${esc(g.res.join("・"))}</p>`:""}${g.gear?`<p class="qtext">装備：${esc(g.gear)}</p>`:""}${g.jobs?`<dl class="kv">${Object.entries(g.jobs).map(([j,d])=>`<dt>${esc(j)}</dt><dd>${esc(d.w)}／${esc(d.s)}／${esc(d.c)}</dd>`).join("")}</dl>`:""}${g.note?`<p class="hint">${esc(g.note)}</p>`:""}</div>`).join("")}</div>`:""}
   <h3>知っておくと便利なこと</h3><div class="grid two">${SUPPORT_GUIDE.map(g=>`<div class="panel"><h3>${esc(g.h)}</h3><p class="lead">${esc(g.b)}</p></div>`).join("")}</div>
-  <p class="src">出典：${srcLinks(["kyoku_sup","ranbu_sup","quucha_bar81","draquex_buki","masa_banma","kyoku_shiren","kyoku_job_injya","kyoku_job_ryu","kyoku_job_kaizoku","kyoku_job_guard","kyoku_job_storm","kyoku_job_death"])}</p>`; };
+  <p class="src">出典：${srcLinks(["sqex_faq_sakusen","akkun_banma","kumu_storm","kyoku_sup","ranbu_sup","quucha_bar81","draquex_buki","masa_banma","kyoku_shiren","kyoku_job_injya","kyoku_job_ryu","kyoku_job_kaizoku","kyoku_job_guard","kyoku_job_storm","kyoku_job_death"])}</p>`; };
 
 R.zel = () => { const z=S.zel; const lab=["","開","下","ボ","鱗","箱"]; const cls=["","open","down","boss","open","open"];
   const parts=["あたま","からだ上","からだ下","うで","あし"];
@@ -312,16 +325,20 @@ function buildRecruit(){ const v=$("#r-con")?.value; if(!$("#r-out")) return; le
   const lines=[`【募集】${o?o.name:"（コンテンツ）"}　${$("#r-purpose").value}`, job?`主：${job}`:"", $("#r-want").value?`募集：${$("#r-want").value}`:"", need.length?`耐性：${need.join("・")}（100%）`:"", dmg.length?`あると良い：${dmg.map(d=>d+"軽減").join("・")}`:"", $("#r-cmt").value].filter(Boolean);
   $("#r-out").value=lines.join("\n"); }
 
+// 職業別の宝珠（出典で確認できた職業だけ）
+function jobOrbHTML(n){ const d=typeof JOBORB!=="undefined"&&JOBORB[n]; if(!d) return "";
+  return `<div class="joborb"><span class="badge new">出典あり ${esc(d.ver)}</span><ul>${d.p.map(([k,v])=>`<li><b>${esc(k)}</b>：${esc(v)}</li>`).join("")}</ul><p class="hint">理由・用途：${esc(d.why)}</p><div class="src">出典：${srcLinks(d.src)}</div><p class="hint">役割の目安：</p></div>`; }
 R.job = () => { const nq=norm(q); const use={}; jobNames.forEach(j=>use[j]=[]);
   [...COIN.map(o=>["コインボス",o]),...EV.map(o=>[o.g,o])].forEach(([g,o])=>(o.parties||[]).forEach(p=>p.jobs.forEach(s=>{ if(use[s] && !use[s].includes(o.name)) use[s].push(o.name); })));
   LV.forEach(o=>o.parties.forEach(p=>p.members.forEach(m=>jobNames.forEach(j=>{ if(m.job.includes(j) && !use[j].includes("レベル上げ："+o.name)) use[j].push("レベル上げ："+o.name); }))));
   const list=JOBS.filter(j=>!nq||norm(j.n).includes(nq)||norm(j.g).includes(nq)).sort((a,b)=>use[b.n].length-use[a.n].length);
   return `<h2>職業ガイド</h2><p class="lead">このアプリの編成パターンに何回出てくるかで並べています（多いほど出番が多い）。「この職で探す」を押すと自分の職業に設定されます。</p><details class="acts"><summary>スキル振りの基本（全職共通・Ver8.0）</summary><p class="qtext">${esc(SKILL_BASE)}</p><p class="src">出典：${srcLinks(["kanon_sp","kanon_sk"])}（ブログ筆者の方針。正解は1つではないとされています）</p></details>
-  <div class="grid two">${list.map(j=>`<div class="panel"><div class="card-h"><h3>${esc(j.n)}</h3><span class="badge">${esc(j.g)}</span></div><p class="lead">登場：${use[j.n].length}件</p>${typeof JOBSKILL!=="undefined"&&JOBSKILL[j.n]?`<details><summary>スキル振り・宝珠の目安</summary><dl class="kv"><dt>スキル振り</dt><dd>${esc(JOBSKILL[j.n].sk)}</dd><dt>宝珠</dt><dd>${esc(((ORB.role.find(r=>r[0]===JOBSKILL[j.n].r)||[])[1])||"")}<br><span class="hint">役割「${esc(JOBSKILL[j.n].r)}」の目安。全職共通の宝珠は「宝珠・アクセ」タブ</span></dd>${SAPO_JOB[j.n]?`<dt>サポで雇うなら</dt><dd>${esc(SAPO_JOB[j.n].w)}／${esc(SAPO_JOB[j.n].s)}</dd>`:""}</dl></details>`:""}${use[j.n].length?`<details><summary>出てくるボス・狩り場</summary><div class="chips">${use[j.n].map(n=>`<span class="chip">${esc(n)}</span>`).join("")}</div></details>`:""}<div class="actions"><button class="btn primary" data-setjob="${esc(j.n)}">この職で探す</button></div></div>`).join("")}</div>`; };
+  <div class="grid two">${list.map(j=>`<div class="panel"><div class="card-h"><h3>${esc(j.n)}</h3><span class="badge">${esc(j.g)}</span></div><p class="lead">登場：${use[j.n].length}件</p>${typeof JOBSKILL!=="undefined"&&JOBSKILL[j.n]?`<details><summary>スキル振り・宝珠の目安</summary><dl class="kv"><dt>スキル振り</dt><dd>${esc(JOBSKILL[j.n].sk)}</dd><dt>宝珠</dt><dd>${jobOrbHTML(j.n)}${esc(((ORB.role.find(r=>r[0]===JOBSKILL[j.n].r)||[])[1])||"")}<br><span class="hint">役割「${esc(JOBSKILL[j.n].r)}」の一般的な目安${typeof JOBORB!=="undefined"&&JOBORB[j.n]?"":"（この職業専用のおすすめはVer7以降の出典で未確認）"}。全職共通の宝珠は「宝珠・アクセ」タブ</span></dd>${SAPO_JOB[j.n]?`<dt>サポで雇うなら</dt><dd>${esc(SAPO_JOB[j.n].w)}／${esc(SAPO_JOB[j.n].s)}</dd>`:""}</dl></details>`:""}${use[j.n].length?`<details><summary>出てくるボス・狩り場</summary><div class="chips">${use[j.n].map(n=>`<span class="chip">${esc(n)}</span>`).join("")}</div></details>`:""}<div class="actions"><button class="btn primary" data-setjob="${esc(j.n)}">この職で探す</button></div></div>`).join("")}</div>`; };
 
 R.orb = () => `<h2>宝珠・アクセサリー</h2><div class="panel"><h3>まず取る宝珠（全職共通）</h3><div class="tablewrap"><table><tr><th>宝珠</th><th>効果</th><th>優先度</th></tr>${ORB.common.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table></div><p class="lead">${esc(ORB.note)}</p></div>
   <div class="grid two"><div class="panel"><h3>役割別の次に取る宝珠</h3>${ORB.role.map(r=>`<h4>${esc(r[0])}</h4><p style="margin:0">${esc(r[1])}</p>`).join("")}</div>
   <div class="panel"><h3>遊び方別の優先</h3><div class="tablewrap"><table><tr><th>遊び方</th><th>優先</th><th>後回し</th></tr>${ORB.scene.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table></div></div></div>
+  ${typeof JOBORB!=="undefined"?`<div class="panel"><h3>職業別のおすすめ（Ver7以降の出典で確認できた職業）</h3><p class="hint">ここにない職業は、職業別のおすすめをVer7以降の出典で確認できていません（未確認）。上の「役割別」を目安にしてください。</p>${Object.keys(JOBORB).map(n=>`<details><summary>${esc(n)}</summary>${jobOrbHTML(n).replace('<p class="hint">役割の目安：</p>','')}</details>`).join("")}</div>`:""}
   <div class="panel"><h3>コインボスアクセの系統（伝承の流れ）</h3><div class="tablewrap"><table><tr><th>部位</th><th>流れ</th><th>ボス</th></tr>${ACCE.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table></div><p class="lead">${esc(ACCE_NOTE)}</p></div>
   <p class="src">出典：<a href="https://asellog.com/dqx-orb-priority-chart/" target="_blank" rel="noopener">あせろぐ 必須・優先宝珠の入手チャート（2026-09更新）</a><br><a href="https://asellog.com/dqx-coinboss-acce/" target="_blank" rel="noopener">あせろぐ コインボスアクセ一覧（Ver8.0対応・2026-09更新）</a></p>`;
 
