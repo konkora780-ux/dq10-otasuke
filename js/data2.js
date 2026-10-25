@@ -21,11 +21,11 @@ const PET_SPEC = {
  "ニードルマン":[
   {type:"まもの博士特化（弱体）",era:"Ver8.0",skills:"短剣型",equip:"要確認",badge:"フリーバッジ使用",how:"作戦「MPつかうな」で通常攻撃から弱体を重ねる",src:["lab"]}],
  "ホイミスライム":[
-  {type:"常闇・レグナード（サポート仲間と）",era:"記事時点（要確認）",skills:"回復型",equip:"ブレス耐性があると安心",badge:"—",how:"天地雷鳴士＋魔剣士2人と組む",src:["ranbu_seisen_sp"]}],
+],
  "キメラ":[
-  {type:"常闇・ダークキング／闘戦記・レギロ",era:"記事時点（要確認）",skills:"回復型（地震無効）",equip:"毒耐性",badge:"—",how:"ザオラルと聖女の守りだけ使わせる例あり",src:["ranbu_seisen_sp","ranbu_tousen_sp"]}],
+],
  "キラーパンサー":[
-  {type:"闘戦記・バラシュナ／レギロ",era:"記事時点（要確認）",skills:"ツメ型",equip:"要確認",badge:"—",how:"蘇生の優先順位を一番上に",src:["ranbu_tousen_sp"]}],
+],
  "バトルレックス":[
   {type:"スライムナイト・強の補助",era:"Ver8.0",skills:"レックス＋火炎型",equip:"要確認",badge:"—",how:"竜のおたけびで不足分を補う",src:["asel_sk"]}]
 };

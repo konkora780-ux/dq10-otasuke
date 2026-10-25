@@ -87,3 +87,16 @@ Object.assign(SAPO_G,{
   ev("昏冥庫パニガルム","昏冥庫パニガルム","期間ごとにボスが1体","/",{weak:"期間のボスによる",resnote:"期間のボスによる（出典で確認）",parties:[],src:["kyoku_konmei"],era:"極限攻略（2026年10月確認）",
     acts:["推奨Lv130","1回6〜8分","昏冥晶で女神の木の昏冥の精霊を育てる（庭園ランク4以上）"]});
 })();
+
+// ===== 出典の点検（2026-10-25）：Ver6以前のまま更新されていない記事は使わない =====
+// 点検した89件のうち、最終更新が2021〜2023年（Ver6以前）の13件を外し、その記事だけにもとづく編成・メモはデータから削除した。
+(()=>{
+  const DEAD=["ranbu_seisen_sp","ranbu_tousen_sp","ranbu_garu","ranbu_regi","ranbu_gura","ranbu_gyu","ike_leg","ranbu_pani","ranbu_jashin","ranbu_toga","famitsu_toga","ranbu_zol","roi_banma"];
+  const clean=o=>{ if(o&&Array.isArray(o.src)) o.src=o.src.filter(k=>!DEAD.includes(k)); };
+  [COIN,EV,LV].forEach(l=>l.forEach(o=>{ clean(o); (o.parties||[]).forEach(clean); }));
+  Object.values(GINFO).forEach(clean); Object.values(SAPO_G).forEach(clean);
+  if(typeof PET_SPEC!=="undefined") Object.values(PET_SPEC).forEach(a=>a.forEach(clean));
+  // 咎人の参加条件は極限攻略・攻略極で確認できるので出典を差し替え
+  const t=GINFO["深淵の咎人たち"]; if(t){ t.src=[...new Set([...(t.src||[]),"kyoku_toga","dqjp_toga"])]; }
+  DEAD.forEach(k=>delete SRC[k]);
+})();
