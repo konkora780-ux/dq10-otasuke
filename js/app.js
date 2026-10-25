@@ -217,7 +217,7 @@ function filterBoss(kind, list){ const f=S.f, nq=norm(q);
   return a; }
 function onlyBar(){ return onlyId?`<div class="notice">共有リンクの項目だけ表示しています。<button class="btn" data-act="all">すべて表示</button></div>`:""; }
 R.coin = () => { const a=filterBoss("coin",COIN); return `<h2>コインボス・召喚符</h2><p class="lead">必要耐性はVer8.1時点の一覧、編成は各攻略ページの例です。古い編成には「要確認」を付けています。</p>${bossFilters("coin")}${onlyBar()}<div class="grid two">${a.map(o=>bossCard("coin",o)).join("")||`<div class="empty">条件に合うボスがありません</div>`}</div>`; };
-R.event = () => { const a=filterBoss("event",EV); return `<h2>高難度・イベント</h2><p class="lead">常闇の聖戦・聖守護者の闘戦記・邪神の宮殿・天獄・万魔の塔・咎人・宿敵・防衛軍・パニガルム・輝晶獣・まもの博士・ゼルメア・試練の門・ピラミッド・黄昏の奏戦記・王家/心層の迷宮・魔塔など。上の「すべてのコンテンツ」から選べます。耐性はVer8.1時点（2026-10-20更新）の一覧です。</p>${bossFilters("event")}${onlyBar()}<div class="grid two">${a.map(o=>bossCard("event",o)).join("")||`<div class="empty">条件に合うコンテンツがありません</div>`}</div>`; };
+R.event = () => { const a=filterBoss("event",EV); return `<h2>高難度・イベント</h2><p class="lead">常闇の聖戦・聖守護者の闘戦記・邪神の宮殿・天獄・万魔の塔・咎人・宿敵・防衛軍・パニガルム・輝晶獣・まもの博士・ゼルメア・試練の門・ピラミッド・黄昏の奏戦記・王家/心層の迷宮・魔塔・異界アスタルジア・強戦士の書・フェスタインフェルノ・バトルルネッサンス・ブートキャンプなど。上の「すべてのコンテンツ」から選べます。耐性はVer8.1時点（2026-10-20更新）の一覧です。</p>${bossFilters("event")}${onlyBar()}<div class="grid two">${a.map(o=>bossCard("event",o)).join("")||`<div class="empty">条件に合うコンテンツがありません</div>`}</div>`; };
 
 R.lv = () => { const nq=norm(q); const a=LV.filter(o=>onlyId?o.id===onlyId:(!nq||textOf(o).includes(nq)));
   return `<h2>レベル上げ</h2><p class="lead">狩り場ごとに、パーティーの各メンバーの役割・装備・立ち回りをまとめています。経験値はおおよその目安で、混雑や装備で変わります。</p>${onlyBar()}<div class="grid two">${a.map(o=>`<article class="card" id="c-${o.id}">
