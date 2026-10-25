@@ -57,7 +57,7 @@ resetCheck();
 // ---- ビュー定義 ----
 const VIEWS = [
  {id:"home",label:"ホーム"},{id:"coin",label:"コインボス",list:()=>COIN},{id:"event",label:"高難度・イベント",list:()=>EV},
- {id:"lv",label:"レベル上げ",list:()=>LV},{id:"pet",label:"仲間モンスター",list:()=>PET},{id:"support",label:"サポ仲間の探し方"},
+ {id:"lv",label:"レベル上げ",list:()=>LV},{id:"pet",label:"仲間モンスター",list:()=>PET},{id:"support",label:"サポ仲間早見表"},
  {id:"zel",label:"ゼルメア"},{id:"daily",label:"日課・週課"},{id:"cal",label:"カレンダー"},{id:"my",label:"マイ耐性・装備"},
  {id:"fav",label:"お気に入り"},{id:"recruit",label:"募集文"},{id:"job",label:"職業ガイド",list:()=>JOBS},{id:"orb",label:"宝珠・アクセ"},
  {id:"gold",label:"金策"},{id:"gloss",label:"用語",list:()=>GLOSS},{id:"about",label:"評価・このアプリ"}
@@ -182,7 +182,7 @@ function bossCard(kind, o){ const done=S.done[kind+":"+o.id]; const parties=o.pa
   ${sapoBox(kind,o)}
   ${o.reward?`<dl class="kv"><dt>報酬</dt><dd>${esc(o.reward)}</dd></dl>`:""}
   ${guideBox(kind,o)}
-  <details class="more"><summary>装備・耐性のくわしい目安</summary>${equipBox(o)}  <div><h4>耐性の一覧（マイ耐性と比べる） ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${needChips(o.need,o.dmg)}</div></details>
+  <details class="more"><summary>装備・耐性のくわしい目安</summary>${equipBox(o)}  <div><h4>耐性の一覧（マイ耐性と比べる） ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${needChips(o.need,o.dmg)}${S.myRes.length?resHow(missing(o.need),false):""}</div></details>
 
   <div><h4>編成パターン（${parties.length}）${hits!=null?` <span class="badge ${hits?"new":"warn"}">${esc(S.myJob)}が入る：${hits}</span>`:""}</h4>
    ${parties.length?parties.map(partyHTML).join(""):`<p class="lead">${o.g==="邪神の宮殿"?"獄ごとに職業・武器の制限が変わるため、決まった編成は載せていません。制限に合わせて、上の「装備の目安」と倒す順を参考にしてください。":"編成パターンは準備中です。情報があれば「誤りを報告」から教えてください。"}</p>`}</div>
@@ -244,7 +244,16 @@ R.pet = () => { const nq=norm(q); const a=PET.filter(p=>(!S.f.petT||p.t===S.f.pe
    <div class="actions"><button class="btn" data-act="petdone" data-id="${esc(p.n)}" aria-pressed="${!!S.petDone[p.n]}">✓ 育成済み</button><button class="btn" data-act="report" data-id="${esc(p.n)}">誤りを報告</button></div>
    <details><summary>出典</summary><div class="src">${srcLinks(["hotondo","kanon","ranbu_pet",...new Set(sp.flatMap(s=>s.src))])}</div></details></article>`; }).join("")}</div>`; };
 
-R.support = () => `<h2>サポート仲間の探し方</h2><div class="grid two">${SUPPORT_GUIDE.map(g=>`<div class="panel"><h3>${esc(g.h)}</h3><p class="lead">${esc(g.b)}</p></div>`).join("")}</div><p class="src">出典：${srcLinks(["ranbu_sup"])}</p>`;
+R.support = () => { const nq=norm(S.q||"");
+  const jobs=JOBS.map(j=>j.n).filter(n=>SAPO_JOB[n]&&(!nq||norm(n+JSON.stringify(SAPO_JOB[n])).includes(nq)));
+  const sp=Object.entries(SAPO_G).filter(([,g])=>g.res||g.jobs||g.gear);
+  return `<h2>サポート仲間の探し方・早見表</h2>
+  <div class="panel"><h3>酒場での探し方（共通）</h3><ol>${SAPO_HOW.map(x=>`<li>${esc(x)}</li>`).join("")}</ol><p class="hint">さくせん：攻撃役は「ガンガンいこうぜ」、回復役は「いのちだいじに」、補助役は「バッチリがんばれ」が基本。ボスごとの条件は各カードの「ソロ（サポ仲間）で行くなら」にあります。</p></div>
+  <h3>職業ごとの「雇うならこの条件」</h3>
+  <div class="grid two">${jobs.map(n=>{ const d=SAPO_JOB[n]; return `<div class="panel"><div class="card-h"><h3>${esc(n)}</h3><span class="badge">${esc((JOBS.find(j=>j.n===n)||{}).g||"")}</span></div><dl class="kv"><dt>武器（検索で指定）</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)}</dd><dt>見るところ</dt><dd>${esc(d.c)}</dd></dl></div>`; }).join("")}</div>
+  ${sp.length?`<h3>コンテンツごとの特別な条件</h3><div class="grid two">${sp.map(([k,g])=>`<div class="panel"><h3>${esc(k)}</h3>${g.res?`<p class="qtext">耐性：${esc(g.res.join("・"))}</p>`:""}${g.gear?`<p class="qtext">装備：${esc(g.gear)}</p>`:""}${g.jobs?`<dl class="kv">${Object.entries(g.jobs).map(([j,d])=>`<dt>${esc(j)}</dt><dd>${esc(d.w)}／${esc(d.s)}／${esc(d.c)}</dd>`).join("")}</dl>`:""}${g.note?`<p class="hint">${esc(g.note)}</p>`:""}</div>`).join("")}</div>`:""}
+  <h3>知っておくと便利なこと</h3><div class="grid two">${SUPPORT_GUIDE.map(g=>`<div class="panel"><h3>${esc(g.h)}</h3><p class="lead">${esc(g.b)}</p></div>`).join("")}</div>
+  <p class="src">出典：${srcLinks(["kyoku_sup","ranbu_sup","quucha_bar81","draquex_buki","masa_banma","kyoku_shiren"])}</p>`; };
 
 R.zel = () => { const z=S.zel; const lab=["","開","下","ボ","鱗","箱"]; const cls=["","open","down","boss","open","open"];
   const parts=["あたま","からだ上","からだ下","うで","あし"];
@@ -270,11 +279,15 @@ R.cal = () => { const today=jstNow().toISOString().slice(0,10); const st=(c)=> c
   <div class="panel">${CAL.map(c=>{const [l,k]=st(c); return `<div class="check"><span class="badge ${k}">${l}</span><span class="num">${esc(c.start.replace(/-/g,"/"))}${c.end?"〜"+esc(c.end.slice(5).replace("-","/")):"〜"}</span><span style="flex:1">${esc(c.title)} <span class="badge">${esc(c.kind)}</span></span></div>`;}).join("")}</div>
   <div class="panel"><h3>くり返しの予定</h3><ul>${CAL_REPEAT.map(r=>`<li>${esc(r)}</li>`).join("")}</ul></div><p class="src">出典：${srcLinks([...new Set(CAL.map(c=>c.src))])}</p>`; };
 
+// 足りない耐性をどう補うか（防具の錬金・アクセ・そのほか）
+function resHow(list,open){ if(typeof RESGUIDE==="undefined") return ""; const l=list.filter(x=>RESGUIDE[x]); if(!l.length) return "";
+  return `<h4>足りない耐性の補い方</h4>${l.map(x=>{ const g=RESGUIDE[x]; return `<details class="acts" ${open?"open":""}><summary>${esc(x)}ガード</summary><dl class="kv">${g.a?`<dt>防具の錬金</dt><dd>${esc(g.a)}</dd>`:""}${g.b?`<dt>アクセ</dt><dd>${esc(g.b)}</dd>`:""}${g.c?`<dt>そのほか</dt><dd>${esc(g.c)}</dd>`:""}</dl></details>`; }).join("")}`; }
 R.my = () => { const miss=[...COIN.map(o=>["coin",o]),...EV.map(o=>["event",o])].filter(([,o])=>missing(o.need).length);
   const top={}; miss.forEach(([,o])=>missing(o.need).forEach(s=>top[s]=(top[s]||0)+1)); const rank=Object.entries(top).sort((a,b)=>b[1]-a[1]);
   return `<h2>マイ耐性・装備</h2><div class="grid two"><div class="panel"><h3>自分の職業</h3>${jobSelect("my-job")}<p class="lead">選ぶと、ボスごとに「自分が入れる編成」と「サポで借りる職業」が出ます。</p></div>
   <div class="panel"><h3>持っている耐性（100%）${S.myJob?`：${esc(S.myJob)}`:"：職業を選ばないとき"}</h3><div class="chips">${STATUS.map(s=>`<button class="chip" data-res="${s}" aria-pressed="${S.myRes.includes(s)}">${s}</button>`).join("")}</div><p class="lead">今の装備で100%になっている耐性をタップ。職業ごとに別々に記録され、職業を切り替えるとその職業の耐性に変わります。</p>${(()=>{ const o=Object.entries(S.resByJob).filter(([k,v])=>k!==(S.myJob||"")&&v&&v.length); return o.length?`<div class="frow"><span class="lead">ほかの職業からコピー：</span>${o.map(([k])=>`<button class="chip" data-copyres="${esc(k)}">${esc(k||"職業なし")}</button>`).join("")}</div>`:""; })()}${Object.keys(S.resByJob).filter(k=>S.resByJob[k]&&S.resByJob[k].length).length?`<p class="hint">記録がある職業：${esc(Object.keys(S.resByJob).filter(k=>S.resByJob[k].length).map(k=>(k||"職業なし")+"（"+S.resByJob[k].length+"）").join("・"))}</p>`:""}</div></div>
-  <div class="panel"><h3>足りない耐性のまとめ</h3>${S.myRes.length?(rank.length?`<p class="lead">耐性が足りないボス・コンテンツ：${miss.length}件。よく必要になる順：</p><div class="chips">${rank.map(([s,n])=>`<span class="chip ng">${esc(s)}（${n}件）</span>`).join("")}</div>`:`<p class="lead">登録した耐性で、すべてのボスの必要耐性を満たしています。</p>`):`<p class="lead">耐性を登録するとここに表示されます。</p>`}</div>
+  <div class="panel"><h3>足りない耐性のまとめ</h3>${S.myRes.length?(rank.length?`<p class="lead">耐性が足りないボス・コンテンツ：${miss.length}件。よく必要になる順：</p><div class="chips">${rank.map(([s,n])=>`<span class="chip ng">${esc(s)}（${n}件）</span>`).join("")}</div>${resHow(rank.map(([s])=>s).slice(0,6),true)}`:`<p class="lead">登録した耐性で、すべてのボスの必要耐性を満たしています。</p>`):`<p class="lead">耐性を登録するとここに表示されます。</p>`}</div>
+  <div class="panel"><h3>耐性の作り方・入手先</h3><p class="lead">耐性ごとに、どの防具の部位に錬金で付くか、どのアクセで補えるかをまとめました。</p>${resHow(STATUS,false)}<h4>共通のポイント</h4><ul>${RESGUIDE_COMMON.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><p class="src">出典：${srcLinks(["asel_renkin","kyoku_gousei"])}</p></div>
   <div class="panel"><h3>装備メモ</h3><textarea class="input" id="gear" placeholder="例：竜術士 アクセ＝赤竜の首かざり・軍神のゆびわ、転び100、呪文ダメ減…">${esc(S.gear)}</textarea></div>
   <div class="grid two"><div class="panel"><h3>表示の設定</h3><div class="frow"><label>テーマ</label>${[["","端末に合わせる"],["light","ライト"],["dark","ダーク"]].map(([v,l])=>`<button class="chip" data-theme-set="${v}" aria-pressed="${(S.theme||"")===v}">${l}</button>`).join("")}</div>
    <div class="frow" style="margin-top:8px"><label>文字サイズ</label>${[["s","小"],["m","中"],["l","大"],["xl","特大"]].map(([v,l])=>`<button class="chip" data-font-set="${v}" aria-pressed="${S.font===v}">${l}</button>`).join("")}</div></div>
