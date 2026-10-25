@@ -165,3 +165,13 @@ details.guide .kv{grid-template-columns:7.2em 1fr}
 .mine{margin:0 0 4px;font-size:.92rem}
 details.more summary,details.roles summary{cursor:pointer;font-weight:700}
 @media (min-width:900px){.quick{grid-template-columns:1fr}}
+details.sapo{border:1px solid var(--line,#ccd);border-radius:12px;padding:8px 12px;margin:8px 0;background:var(--panel2)}
+details.sapo>summary{font-weight:700;cursor:pointer}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.sapo-t{border-collapse:collapse;width:100%;font-size:.88em;margin:6px 0}
+table.sapo-t th,table.sapo-t td{border-bottom:1px solid var(--line,#ccd);padding:4px 6px;text-align:left;vertical-align:top}
+table.sapo-t tbody th{white-space:nowrap}
+ul.sapo-l{list-style:none;padding:0;margin:4px 0}
+ul.sapo-l>li{border-top:1px dashed var(--line);padding:6px 0}
+ul.sapo-l .kv{margin:2px 0 0}
+details.sapo{min-width:0}

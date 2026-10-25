@@ -140,12 +140,39 @@ function quickBox(kind,o){
    <div class="qsec"><h4>必要な耐性 ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${res}</div>
    <div class="qsec"><h4>攻め方</h4><p class="qtext">弱点：<b>${w}</b>${o.res&&o.res!=="—"?`　効きにくい：${esc(o.res.split(/[（(]/)[0])}`:""}</p></div>
   </div>`; }
+// ソロ（自分＋サポート仲間3人）で行くなら：雇う職業・検索条件・装備
+const SAPO_ST=["即死","封印","眠り","混乱","マヒ","転び","踊り","魅了","幻惑","おびえ","呪い","どく","MP吸収","弱体","しばり","ショック"];
+function sapoRes(o,g){ if(g&&g.res) return {main:g.res,more:[]};
+  const pt=prioTiers(o.prio); const sp=t=>t.join("・").replace(/[（(][^）)]*[）)]/g,"").split("・").map(x=>x.trim()).filter(Boolean);
+  let a=sp(pt["◎"]), b=sp(pt["○"]); if(!a.length&&!b.length){ a=[...(o.need||[]),...(o.dmg||[])]; }
+  const lab=x=>SAPO_ST.includes(x)?x+"★★":x+"★"; const ord=l=>[...l.filter(x=>SAPO_ST.includes(x)),...l.filter(x=>!SAPO_ST.includes(x))];
+  const all=[...new Set([...ord(a),...ord(b)])]; return {main:all.slice(0,3).map(lab),more:all.slice(3).map(lab)}; }
+function sapoBox(kind,o){ if(kind!=="coin"&&kind!=="event") return ""; const g=(typeof SAPO_G!=="undefined"&&o.g&&SAPO_G[o.g])||{};
+  if(g.no) return `<details class="sapo"><summary>ソロ（サポ仲間）で行くなら</summary><p class="lead">${esc(g.no)}</p></details>`;
+  const ps=(o.parties||[]).filter(p=>!/一般例/.test(p.era||"")); if(!ps.length) return "";
+  const p=(S.myJob&&ps.find(p=>partyHas(p,S.myJob)))||ps[0]; const me=S.myJob&&partyHas(p,S.myJob)?S.myJob:p.jobs[0];
+  const hires=borrow(p,me); const uniq=[...new Set(hires.map(h=>h.replace(/\(仲間\)/,"")))];
+  const r=sapoRes(o,g); const w=(o.weak||"").split(/[（(]/)[0]; const we=ELEM.filter(e=>w.includes(e)&&!/^なし/.test(w));
+  const rows=uniq.map(j=>{ const d=(g.jobs&&g.jobs[j])||SAPO_JOB[j]; if(!d) return `<li><b>${esc(j)}</b>：${j in FREE_SLOTS?"この枠は好きな職業でOK（下の共通の目安で探す）":PET.find(x=>x.n===j)?`仲間モンスター（${esc([PET.find(x=>x.n===j).role,PET.find(x=>x.n===j).w&&"武器："+PET.find(x=>x.n===j).w].filter(Boolean).join("・"))}）。育て方は「仲間モンスター」タブ`:"目安は準備中"}</li>`;
+    const atk=/ガンガン/.test(d.s)&&we.length?`。武器の属性が${we.join("・")}ならなお良い`:"";
+    return `<li><b>${esc(j)}</b><dl class="kv"><dt>武器</dt><dd>${esc(d.w)}</dd><dt>さくせん</dt><dd>${esc(d.s)}</dd><dt>見るところ</dt><dd>${esc(d.c+atk)}</dd></dl></li>`; }).join("");
+  return `<details class="sapo"><summary>ソロ（サポ仲間）で行くなら</summary>
+  <p class="qtext">自分：<b>${esc(me)}</b>${S.myJob&&me!==S.myJob?`（${esc(S.myJob)}が入る編成がないため先頭の例）`:""}　雇う：<b>${esc(hires.join("・"))}</b></p>
+  ${p.note?`<p class="hint">${esc(p.note)}</p>`:""}
+  <h4>酒場で入れる耐性（3つまで）</h4><div class="chips">${r.main.map(x=>`<span class="chip">${esc(x)}</span>`).join("")||"特になし"}</div>
+  ${r.more.length?`<p class="hint">ほかに：${esc(r.more.join("・"))}（3つを超える分は装備画面で確認）</p>`:""}
+  <h4>雇う仲間の条件（武器は検索で指定できます）</h4><ul class="sapo-l">${rows}</ul>
+  ${o.gear||g.gear?`<p class="qtext">装備：${esc([g.gear,o.gear].filter(Boolean).join("／"))}</p>`:""}
+  ${g.note?`<p class="hint">${esc(g.note)}</p>`:""}
+  <details class="roles"><summary>酒場での探し方（共通）</summary><ol>${SAPO_HOW.map(x=>`<li>${esc(x)}</li>`).join("")}</ol><p class="hint">★2＝耐性100%、★1＝40〜99%。武器・さくせんは攻略サイトでよく使われる形で、ボスによって変わることがあります。</p></details>
+  <div class="src">出典：${srcLinks(["kyoku_sup",...(g.src||[])])}</div></details>`; }
 function bossCard(kind, o){ const done=S.done[kind+":"+o.id]; const parties=o.parties||[];
   const hits = S.myJob ? parties.filter(p=>partyHas(p,S.myJob)).length : null;
   return `<article class="card ${done?"done":""}" id="c-${esc(o.id)}">
   <div class="card-h"><h3>${esc(o.name)}</h3>${S.fav[kind+":"+o.id]?'<span class="badge warn">☆</span>':""}</div>
   <div class="meta">${o.cat?`<span class="badge">${esc(o.cat)}</span>`:""}${o.g?`<span class="badge">${esc(o.g)}</span>`:""}${o.ver?`<span class="badge ${verNum(o.ver)>=7?"new":""}">実装 Ver.${esc(o.ver)}</span>`:""}${o.bosses?`<span>${esc(o.bosses)}</span>`:""}</div>
   ${quickBox(kind,o)}
+  ${sapoBox(kind,o)}
   ${o.reward?`<dl class="kv"><dt>報酬</dt><dd>${esc(o.reward)}</dd></dl>`:""}
   ${guideBox(kind,o)}
   <details class="more"><summary>装備・耐性のくわしい目安</summary>${equipBox(o)}  <div><h4>耐性の一覧（マイ耐性と比べる） ${S.myRes.length?`<span class="badge ${missing(o.need).length?"warn":"new"}">${missing(o.need).length?"足りない "+missing(o.need).length+"つ":"耐性OK"}</span>`:""}</h4>${needChips(o.need,o.dmg)}</div></details>
